@@ -15,6 +15,7 @@ package com.brazilmr.hands
 
 import android.content.Context
 import android.graphics.Bitmap
+import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
@@ -110,7 +111,7 @@ class HandTracking(
         if (timestampNs - lastInferenceNs < 33_000_000L) return
         lastInferenceNs = timestampNs
         try {
-            val mpImage = MPImage(bitmap)
+            val mpImage = BitmapImageBuilder(bitmap).build()
             lm.detectAsync(mpImage, timestampNs / 1_000_000L)
         } catch (_: Throwable) {
         }

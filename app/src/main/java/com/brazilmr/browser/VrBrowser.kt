@@ -42,7 +42,8 @@ class VrBrowser(
 
     private val main = Handler(Looper.getMainLooper())
     private var webView: WebView? = null
-    private var canvas: Canvas? = null
+    private var canvasBack: Canvas? = null
+    private var canvasFront: Canvas? = null
 
     // double-buffer de bitmap: main desenha no back, GL publica o front
     private val bitmapBack = Bitmap.createBitmap(TEX_W, TEX_H, Bitmap.Config.ARGB_8888)
@@ -159,14 +160,15 @@ class VrBrowser(
         main.post {
             val wv = webView ?: return@post
             bitmapBack.eraseColor(android.graphics.Color.DKGRAY)
-            if (canvas == null) canvas = Canvas(bitmapBack)
+            val cb = canvasBack ?: Canvas(bitmapBack).also { canvasBack = it }
             try {
-                wv.draw(canvas)
+                wv.draw(cb)
             } catch (_: Exception) {
             }
             bitmapLock.withLock {
                 bitmapFront.eraseColor(0)
-                bitmapFront.drawBitmap(bitmapBack, 0f, 0f, null)
+                val cf = canvasFront ?: Canvas(bitmapFront).also { canvasFront = it }
+                cf.drawBitmap(bitmapBack, 0f, 0f, null)
             }
             dirty.set(true)
         }

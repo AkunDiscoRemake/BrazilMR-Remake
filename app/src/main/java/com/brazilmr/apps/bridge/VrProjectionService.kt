@@ -141,10 +141,11 @@ class VrProjectionService : Service() {
                 }, handler)
             }
 
+            // API 33+: overload SEM flags (callback/handler opcionais)
             virtualDisplay = mp.createVirtualDisplay(
                 "BrazilMR-Apps",
                 captureWidth, captureHeight, metrics.densityDpi,
-                reader!!.surface, 0,
+                reader!!.surface, null, null,
             )
             running = true
         } catch (_: Exception) {

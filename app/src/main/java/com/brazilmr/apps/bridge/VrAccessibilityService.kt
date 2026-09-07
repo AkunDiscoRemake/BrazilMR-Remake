@@ -29,22 +29,20 @@ class VrAccessibilityService : AccessibilityService() {
         /** Tap em coordenadas de tela. */
         fun tap(x: Float, y: Float, durationMs: Long = 60): Boolean {
             val svc = instance ?: return false
-            return svc.dispatch(
-                GestureDescription.Builder()
-                    .addStroke(stroke(x, y, x, y, 0, durationMs))
-                    .build(),
-            )
+            val gesture = GestureDescription.Builder()
+                .addStroke(stroke(x, y, x, y, 0, durationMs))
+                .build()
+            return svc.dispatchGesture(gesture, null, null)
         }
 
         /** Swipe entre dois pontos (drag na janela espacial). */
         fun swipe(x0: Float, y0: Float, x1: Float, y1: Float,
                   durationMs: Long = 220): Boolean {
             val svc = instance ?: return false
-            return svc.dispatch(
-                GestureDescription.Builder()
-                    .addStroke(stroke(x0, y0, x1, y1, 0, durationMs))
-                    .build(),
-            )
+            val gesture = GestureDescription.Builder()
+                .addStroke(stroke(x0, y0, x1, y1, 0, durationMs))
+                .build()
+            return svc.dispatchGesture(gesture, null, null)
         }
 
         private fun stroke(x0: Float, y0: Float, x1: Float, y1: Float,
