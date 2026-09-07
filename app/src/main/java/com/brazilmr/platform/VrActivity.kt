@@ -242,12 +242,20 @@ class VrActivity : Activity(), VrOs.Host {
     }
 
     private fun startVrSubsystems() {
-        imu.start()
-        NativeSdk.setTrackingBackend(NativeSdk.BACKEND_IMU_3DOF)
-        camera.start(null) // preset BALANCED; MediaPipe consome os mesmos frames
-        hands.start()
-        thermal.start()
+        try {
+            imu.start()
+            NativeSdk.setTrackingBackend(NativeSdk.BACKEND_IMU_3DOF)
+            camera.start(null) // preset BALANCED; MediaPipe consome os mesmos frames
+            hands.start()
+            thermal.start()
+        } catch (t: Throwable) {
+            // um subsistema que falhe NÃO pode derrubar a plataforma —
+            // registra e segue (gaze cobre a interação)
+            CrashReporter.recordError("subsistemas VR", t)
+        }
     }
+
+    fun recenter() = NativeSdk.recenter()
 
     // ------------------------------------------------------------------
     // Diagnóstico: relatório de erro

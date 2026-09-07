@@ -150,7 +150,7 @@ object CrashReporter {
                 append("abis=${Build.SUPPORTED_ABIS.contentToString()}\n")
                 append("processo64bits=${Process.is64Bit()}\n")
                 append("versaoApp=$version\n")
-                append("targetSdk=${context.applicationInfo.targetSdk}\n")
+                append("targetSdk=${context.applicationInfo.targetSdkVersion}\n")
             },
         )
     }
