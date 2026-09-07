@@ -19,7 +19,7 @@
  *   vr.setThermalBudget(b)
  *   vr.recenter()
  *
- * Scripts de exemplo: assets/lua/*.lua (executados no boot da cena SDK).
+ * Scripts de exemplo: assets/lua (hello.lua, window_demo.lua).
  */
 package com.brazilmr.sdk.lua
 
