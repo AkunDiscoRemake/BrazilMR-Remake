@@ -116,6 +116,29 @@ jobs:
           cp app/build/outputs/apk/debug/app-debug.apk BrazilMR-debug.apk
           ls -lh BrazilMR-debug.apk
 
+      - name: Verifica alinhamento 16 KB (Android 15+/ARMv9)
+        run: |
+          cd /tmp && rm -rf apkcheck && mkdir apkcheck && cd apkcheck
+          unzip -q "$GITHUB_WORKSPACE/BrazilMR-debug.apk" "lib/*"
+          READELF="$ANDROID_HOME/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          for so in lib/arm64-v8a/*.so; do
+            align=$("$READELF" -lW "$so" | grep LOAD | head -1 | awk '{print $NF}')
+            echo "$(basename "$so") -> align $align"
+            if [ "$align" != "0x4000" ] && [ "$align" != "0x10000" ]; then
+              echo "::warning::$(basename "$so") alinhada a $align (terceiros: apenas reporta)"
+            fi
+          done
+          # a lib do PROPRIO app TEM que estar 16 KB
+          bad=0
+          for a in $("$READELF" -lW lib/arm64-v8a/libbrazilmr.so | grep LOAD | awk '{print $NF}' | sort -u); do
+            if [ "$a" != "0x4000" ] && [ "$a" != "0x10000" ]; then
+              echo "::error::libbrazilmr.so PT_LOAD align $a (esperado 0x4000)"
+              bad=1
+            fi
+          done
+          [ $bad -eq 0 ] && echo "OK: libbrazilmr.so alinhada a 16 KB"
+          exit $bad
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

@@ -57,6 +57,10 @@ target_compile_options(brazilmr PRIVATE
 )
 target_link_options(brazilmr PRIVATE
     -Wl,--gc-sections
+    # Android 15+ / ARMv9: páginas de 16 KB exigem p_align >= 0x4000 em todos
+    # os PT_LOAD (dispositivos de 4 KB aceitam o mesmo binário).
+    -Wl,-z,max-page-size=16384
+    -Wl,-z,common-page-size=16384
 )
 
 # ---------------------------------------------------------------------------

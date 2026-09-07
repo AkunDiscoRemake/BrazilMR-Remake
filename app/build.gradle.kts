@@ -27,7 +27,9 @@ android {
                     "-fdata-sections"
                 )
                 arguments += listOf(
-                    "-DANDROID_STL=c++_shared",
+                    "-DANDROID_STL=c++_static",
+                    // ^ STL estático: o pré-compilado libc++_shared.so do NDK r26
+                    //   é alinhado a 4 KB e quebraria em dispositivos de 16 KB.
                     "-DCMAKE_BUILD_TYPE=Release",
                     // LuaJIT nativo é opcional (requer checkout do subtree em third_party/luajit).
                     // O engine Lua padrão é LuaJ (JVM), 100% funcional sem NDK extra.
