@@ -4,12 +4,14 @@
 
 #if defined(__ANDROID__)
 #include <GLES3/gl3.h>
-#include <GLES3/gl3ext.h> // GL_TEXTURE_EXTERNAL_OES etc.
+#include <GLES2/gl2ext.h> // extensões (nem todo NDK tem GLES3/gl3ext.h)
 #else
 #include "GLES3/gl3.h" // stub host_tests/stub/ (via -I)
+#endif
+
+// constantes de extensão — sempre disponíveis como fallback
 #ifndef GL_TEXTURE_EXTERNAL_OES
 #define GL_TEXTURE_EXTERNAL_OES 0x8D65
-#endif
 #endif
 
 namespace brazilmr {

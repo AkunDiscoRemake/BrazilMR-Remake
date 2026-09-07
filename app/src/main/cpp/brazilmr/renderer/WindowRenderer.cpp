@@ -22,10 +22,9 @@ void main() {
 )";
 
 static const char* kWinFs = R"(#version 300 es
-#extension GL_OES_EGL_image_external : require
 precision highp float;
 in vec2 vUv;
-uniform samplerExternalOES uContent;
+uniform sampler2D uContent; // Kotlin envia GL_TEXTURE_2D (browser/captura)
 uniform float uHasContent;
 uniform float uFocus;       // 0..1
 uniform float uTime;
@@ -181,7 +180,7 @@ void WindowRenderer::draw(const SpatialWindow& w, const Camera& cam,
 
     if (w.textureId != 0) {
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_EXTERNAL_OES, w.textureId);
+        glBindTexture(GL_TEXTURE_2D, w.textureId);
         shader_.setInt("uContent", 0);
     }
     glEnable(GL_BLEND);
