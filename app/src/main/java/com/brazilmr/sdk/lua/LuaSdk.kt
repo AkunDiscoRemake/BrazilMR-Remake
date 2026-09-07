@@ -172,7 +172,7 @@ class LuaSdk(private val context: Context) {
         vr.set("getHeadPose", object : ZeroArgFunctionCompat() {
             override fun call(): LuaValue {
                 val pose = NativeSdk.getHeadPose() ?: return LuaValue.NIL
-                val t = LuaTable.tableOf(12)
+                val t = LuaTable()
                 for (i in 0 until 12) t.set(i + 1, LuaDouble.valueOf(pose[i].toDouble()))
                 return t
             }
@@ -282,7 +282,7 @@ class LuaSdk(private val context: Context) {
         }
         if (type == NativeSdk.EVENT_WINDOW_INPUT) {
             // registra o último hit para vr.raycast()
-            val t = LuaTable.tableOf(3)
+            val t = LuaTable()
             t.set(1, LuaDouble.valueOf(x)) // u
             t.set(2, LuaDouble.valueOf(y)) // v
             t.set(3, LuaInteger.valueOf(ev[1])) // windowId
@@ -309,7 +309,7 @@ class LuaSdk(private val context: Context) {
 
     private fun lastHandState(left: Boolean): LuaValue {
         val (g, s) = handGesture[left] ?: (NativeSdk.GESTURE_NONE to 0f)
-        val t = LuaTable.tableOf(2)
+        val t = LuaTable()
         t.set("gesture", LuaString.valueOf(gestureName(g)))
         t.set("pinch", LuaDouble.valueOf(s.toDouble()))
         return t
