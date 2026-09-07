@@ -14,7 +14,7 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-annotation = { group = "androidx.annotation", name = "annotation", version.ref = "annotation" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 google-ar-core = { group = "com.google.ar", name = "core", version.ref = "arcore" }
-mediapipe-task-vision = { group = "com.google.mediapipe", name = "task-vision", version.ref = "mediapipeVision" }
+mediapipe-task-vision = { group = "com.google.mediapipe", name = "tasks-vision", version.ref = "mediapipeVision" }
 luaj-jse = { group = "org.luaj", name = "luaj-jse", version.ref = "luaj" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 
