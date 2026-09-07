@@ -62,7 +62,7 @@ class SpatialKeyboard {
             for (ch in row) {
                 val id = NativeSdk.addUiControl(
                     panelId, NativeSdk.UI_BUTTON,
-                    x, y, keyW * 0.92f, rowH, labelFor(ch),
+                    x, y, keyW * 0.92f, rowH, labelFor(ch.toString()),
                 )
                 keyIds.add(id)
                 keyChars.add(ch.toString())
