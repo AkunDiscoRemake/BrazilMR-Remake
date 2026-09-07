@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Cutout mode só existe a partir do Android 8.1/9. -->
+    <style name="Theme.BrazilMR.PreFlight" parent="Theme.BrazilMR">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>

@@ -1,0 +1,23 @@
+[versions]
+agp = "8.5.2"
+kotlin = "1.9.24"
+coroutines = "1.8.1"
+coreKtx = "1.13.1"
+annotation = "1.8.0"
+arcore = "1.44.0"
+mediapipeVision = "0.10.35"
+luaj = "3.0.1"
+junit = "4.13.2"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-annotation = { group = "androidx.annotation", name = "annotation", version.ref = "annotation" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+google-ar-core = { group = "com.google.ar", name = "core", version.ref = "arcore" }
+mediapipe-task-vision = { group = "com.google.mediapipe", name = "tasks-vision", version.ref = "mediapipeVision" }
+luaj-jse = { group = "org.luaj", name = "luaj-jse", version.ref = "luaj" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

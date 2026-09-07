@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BrazilMR</string>
+    <string name="a11y_service_label">BrazilMR — Injeção de Input VR</string>
+    <string name="a11y_service_description">Permite que gestos de mão e controladores VR controlem aplicativos Android executados dentro de janelas espaciais do BrazilMR.</string>
+    <string name="projection_notification_title">BrazilMR</string>
+    <string name="projection_notification_text">Executando aplicativos dentro do ambiente VR…</string>
+    <string name="preflight_title">BrazilMR — Pré-voo</string>
+    <string name="preflight_msg_camera">O BrazilMR usa a câmera para tracking 6DoF e mãos. Toque para permitir, depois coloque o telefone no VR Box.</string>
+    <string name="preflight_msg_done">Tudo pronto. Coloque o telefone no VR Box.</string>
+</resources>

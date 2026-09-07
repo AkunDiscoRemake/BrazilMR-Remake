@@ -1,0 +1,234 @@
+# BrazilMR — build do APK nos servidores do GitHub.
+#
+# Produz: app-debug.apk (arm64-v8a + armeabi-v7a), anexado a uma
+# pre-release e como artifact do workflow.
+#
+# Gatilhos: push nesta branch ou execução manual (workflow_dispatch).
+name: Build APK
+
+on:
+  push:
+    branches: [arena/**, main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  apk:
+    name: Assemble debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      NDK_VERSION: 26.1.10909125
+      CMAKE_VERSION: 3.22.1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Cache NDK/CMake
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/android/sdk/ndk
+            /usr/local/lib/android/sdk/cmake
+          key: android-ndk-${{ env.NDK_VERSION }}-cmake-${{ env.CMAKE_VERSION }}
+
+      - name: Instala componentes do SDK
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "ndk;${NDK_VERSION}" \
+            "cmake;${CMAKE_VERSION}"
+
+      - name: Testes de host do motor nativo (g++)
+        run: |
+          make -C app/src/main/cpp/host_tests run
+
+      - name: Modelo de hand tracking (opcional)
+        run: |
+          tools/fetch_models.sh || echo "sem modelo — hands off (gaze cobre)"
+
+      - name: Build do APK
+        run: |
+          set +e
+          gradle :app:assembleDebug \
+            --stacktrace \
+            --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" \
+            > /tmp/build.log 2>&1
+          status=$?
+          if [ $status -ne 0 ]; then
+            # 1) anotações (limitadas a 10 pelo GitHub)
+            grep -nE "^e: |error:|ERROR:|FAILURE:|^\* What went wrong|^Caused by|Unresolved reference|Cannot access|Execution failed" /tmp/build.log \
+              | head -60 | sed 's/[%]/ percent/g' | while IFS= read -r line; do
+                msg=$(echo "$line" | cut -c1-500)
+                echo "::error::${msg}"
+              done
+            # 2) comentário no PR com TODOS os erros (API é acessível de fora)
+            {
+              echo "## ❌ Erros de build (run $GITHUB_RUN_NUMBER)"
+              echo '```'
+              grep -E "^e: |error:|FAILURE|^\* What went wrong|^Caused by" /tmp/build.log | head -200
+              echo '```'
+              echo "<details><summary>Últimas 80 linhas do log</summary>"
+              echo '```'
+              tail -n 80 /tmp/build.log
+              echo '```'
+              echo "</details>"
+            } > /tmp/errors.md
+            PR=$(gh pr view --json number --jq .number 2>/dev/null || true)
+            if [ -n "$PR" ]; then
+              gh pr comment "$PR" --body-file /tmp/errors.md || true
+            else
+              gh api "repos/$GITHUB_REPOSITORY/issues" \
+                -f title="Erros de build (run $GITHUB_RUN_NUMBER)" \
+                -F body=@/tmp/errors.md || true
+            fi
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Renomeia APK
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk BrazilMR-debug.apk
+          ls -lh BrazilMR-debug.apk
+
+      - name: Verifica alinhamento 16 KB (Android 15+/ARMv9)
+        run: |
+          cd /tmp && rm -rf apkcheck && mkdir apkcheck && cd apkcheck
+          unzip -q "$GITHUB_WORKSPACE/BrazilMR-debug.apk" "lib/*"
+          READELF="$ANDROID_HOME/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          for so in lib/arm64-v8a/*.so; do
+            align=$("$READELF" -lW "$so" | grep LOAD | head -1 | awk '{print $NF}')
+            echo "$(basename "$so") -> align $align"
+            if [ "$align" != "0x4000" ] && [ "$align" != "0x10000" ]; then
+              echo "::warning::$(basename "$so") alinhada a $align (terceiros: apenas reporta)"
+            fi
+          done
+          # a lib do PROPRIO app TEM que estar 16 KB
+          bad=0
+          for a in $("$READELF" -lW lib/arm64-v8a/libbrazilmr.so | grep LOAD | awk '{print $NF}' | sort -u); do
+            if [ "$a" != "0x4000" ] && [ "$a" != "0x10000" ]; then
+              echo "::error::libbrazilmr.so PT_LOAD align $a (esperado 0x4000)"
+              bad=1
+            fi
+          done
+          [ $bad -eq 0 ] && echo "OK: libbrazilmr.so alinhada a 16 KB"
+          exit $bad
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BrazilMR-debug-apk
+          path: BrazilMR-debug.apk
+          retention-days: 30
+
+      - name: Cria pre-release com o APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="bmr-build-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" BrazilMR-debug.apk \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "BrazilMR debug build #${GITHUB_RUN_NUMBER}" \
+            --notes "APK debug compilado do commit ${GITHUB_SHA::7}.
+
+          - ABIs: arm64-v8a, armeabi-v7a
+          - Instalação: \`adb install -r BrazilMR-debug.apk\`
+          - Diagnóstico: se o app fechar sozinho, abra de novo e toque em “Compartilhar relatório”
+          - Hand tracking: baixe hand_landmarker.task e rode tools/fetch_models.sh antes do build, ou use o ponteiro de cabeça (incluído)
+          - Versão estável do motor nativo: 101/101 testes de host" || \
+            echo "release já existe — APK segue no artifact"
+
+  # ---------------------------------------------------------------------------
+  # Smoke test: o app NUNCA rodou em aparelho real — o APK era só compilado.
+  # Aqui ele é instalado e ABERTO num emulador (Android 15, arm64). Se
+  # derrubar o processo na inicialização, o job falha e o logcat (com o
+  # stack trace) vai para o artifact + resumo da run.
+  # ---------------------------------------------------------------------------
+  smoke:
+    name: Smoke test — abre o app num emulador
+    runs-on: macos-latest
+    needs: apk
+    timeout-minutes: 45
+
+    steps:
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Baixa o APK (artifact)
+        uses: actions/download-artifact@v4
+        with:
+          name: BrazilMR-debug-apk
+
+      - name: Boot do emulador (API 34, arm64) + abertura do app
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: arm64-v8a
+          target: google_apis
+          emulator-options: -no-window -gpu host -noaudio -no-boot-anim -no-snapshot -memory 4096
+          emulator-boot-timeout: 900
+          disable-animations: true
+          script: |
+            set -x
+            adb install -r BrazilMR-debug.apk
+            # permissão já concedida → caminho completo (câmera+IMU+hands) no boot
+            adb shell pm grant com.brazilmr android.permission.CAMERA || true
+            adb logcat -c
+            adb shell am start -W -n com.brazilmr/com.brazilmr.platform.VrActivity
+            sleep 75
+            PID=$(adb shell pidof com.brazilmr | tr -d '\r\n ')
+            adb logcat -d -v time > logcat-full.txt
+            adb logcat -d -b crash -v time > logcat-crash.txt || true
+            {
+              echo "## Smoke test (emulador API 34 / arm64)"
+              echo "- App vivo após 75 s: $([ -n "$PID" ] && echo '**SIM**' || echo '**NÃO — crashou**')"
+              echo
+              echo '```'
+              grep -E "FATAL|AndroidRuntime|SIGSEGV|SIGABRT|tombstone|libbrazilmr|BrazilMRCrash|EGL_emulation|createContext|brazilmr" logcat-full.txt | head -120 || true
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            if [ -z "$PID" ]; then
+              echo "::error::O app CRASHOU durante a inicialização no emulador — ver artifact emulator-logcat"
+              exit 1
+            fi
+            echo "OK: app rodando após 75 s de abertura (pid $PID)"
+
+      - name: Upload dos logs do emulador
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-logcat
+          path: logcat-*.txt
+          if-no-files-found: ignore
