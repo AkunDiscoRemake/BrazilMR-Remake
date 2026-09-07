@@ -10,6 +10,8 @@
 package com.brazilmr.performance
 
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.Build
 import android.os.PowerManager
@@ -47,9 +49,13 @@ class ThermalManager(private val context: Context) {
         if (lastTickNs != 0L && now - lastTickNs < 1_000_000_000L) return
         lastTickNs = now
 
-        val bm = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-        val temp = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_TEMPERATURE) / 10f
-        if (temp > 0f) batteryTempC = temp
+        // temperatura via sticky broadcast ACTION_BATTERY_CHANGED
+        // (décimos de grau Celsius em EXTRA_TEMPERATURE)
+        val batteryIntent = context.registerReceiver(
+            null, IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+        )
+        val tempTenths = batteryIntent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1) ?: -1
+        if (tempTenths > 0) batteryTempC = tempTenths / 10f
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager

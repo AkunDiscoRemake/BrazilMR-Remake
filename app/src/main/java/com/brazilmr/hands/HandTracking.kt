@@ -157,9 +157,9 @@ class HandTracking(
         for (i in 0 until NativeSdk.HAND_LANDMARKS) {
             val lm = lms[i]
             // pinhole: câmera olha -Z do mundo; pixel (nx,ny) origem topo-esq
-            val d = handDistance + lm.z * 0.1f
-            val cx = (lm.x - 0.5f) * 2f * tanHalf * d
-            val cy = -(lm.y - 0.5f) * 2f * tanHalf * d
+            val d = handDistance + lm.z() * 0.1f
+            val cx = (lm.x() - 0.5f) * 2f * tanHalf * d
+            val cy = -(lm.y() - 0.5f) * 2f * tanHalf * d
             val cz = -d
 
             // câmera→mundo (câmera traseira alinhada à cabeça no VR Box)

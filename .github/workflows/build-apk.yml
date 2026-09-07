@@ -78,16 +78,36 @@ jobs:
             > /tmp/build.log 2>&1
           status=$?
           if [ $status -ne 0 ]; then
-            # emite os erros como anotações (legíveis via API do GitHub)
+            # 1) anotações (limitadas a 10 pelo GitHub)
             grep -nE "^e: |error:|ERROR:|FAILURE:|^\* What went wrong|^Caused by|Unresolved reference|Cannot access|Execution failed" /tmp/build.log \
               | head -60 | sed 's/[%]/ percent/g' | while IFS= read -r line; do
                 msg=$(echo "$line" | cut -c1-500)
                 echo "::error::${msg}"
               done
-            echo "===== ÚLTIMAS 120 LINHAS ====="
-            tail -n 120 /tmp/build.log
+            # 2) comentário no PR com TODOS os erros (API é acessível de fora)
+            {
+              echo "## ❌ Erros de build (run $GITHUB_RUN_NUMBER)"
+              echo '```'
+              grep -E "^e: |error:|FAILURE|^\* What went wrong|^Caused by" /tmp/build.log | head -200
+              echo '```'
+              echo "<details><summary>Últimas 80 linhas do log</summary>"
+              echo '```'
+              tail -n 80 /tmp/build.log
+              echo '```'
+              echo "</details>"
+            } > /tmp/errors.md
+            PR=$(gh pr view --json number --jq .number 2>/dev/null || true)
+            if [ -n "$PR" ]; then
+              gh pr comment "$PR" --body-file /tmp/errors.md || true
+            else
+              gh api "repos/$GITHUB_REPOSITORY/issues" \
+                -f title="Erros de build (run $GITHUB_RUN_NUMBER)" \
+                -F body=@/tmp/errors.md || true
+            fi
             exit 1
           fi
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Renomeia APK
         run: |

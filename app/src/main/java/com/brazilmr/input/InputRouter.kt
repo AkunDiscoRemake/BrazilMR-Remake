@@ -141,9 +141,11 @@ class InputRouter(private val recenterCallback: () -> Unit) {
 
     /** Eixos de gamepad (Joy-Con: stick esquerdo = mover ponteiro fino). */
     fun onGenericMotion(event: MotionEvent): Boolean {
-        if (event.sources and android.view.InputDevice.SOURCE_CLASS_JOYSTICK == 0) return false
-        stickX = event.getAxisValue(MotionEvent.AXIS_X)
-        stickY = event.getAxisValue(MotionEvent.AXIS_Y)
+        val x = event.getAxisValue(MotionEvent.AXIS_X)
+        val y = event.getAxisValue(MotionEvent.AXIS_Y)
+        if (x == 0f && y == 0f) return false
+        stickX = x
+        stickY = y
         return true
     }
 
