@@ -70,10 +70,24 @@ jobs:
 
       - name: Build do APK
         run: |
+          set +e
           gradle :app:assembleDebug \
             --stacktrace \
             --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8"
+            -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" \
+            > /tmp/build.log 2>&1
+          status=$?
+          if [ $status -ne 0 ]; then
+            # emite os erros como anotações (legíveis via API do GitHub)
+            grep -nE "^e: |error:|ERROR:|FAILURE:|^\* What went wrong|^Caused by|Unresolved reference|Cannot access|Execution failed" /tmp/build.log \
+              | head -60 | sed 's/[%]/ percent/g' | while IFS= read -r line; do
+                msg=$(echo "$line" | cut -c1-500)
+                echo "::error::${msg}"
+              done
+            echo "===== ÚLTIMAS 120 LINHAS ====="
+            tail -n 120 /tmp/build.log
+            exit 1
+          fi
 
       - name: Renomeia APK
         run: |

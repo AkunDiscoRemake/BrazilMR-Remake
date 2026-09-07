@@ -57,12 +57,12 @@ class LuaSdk(private val context: Context) {
         // ------------------------------------------------------------------
         vr.set("createWindow", object : VarArgFunctionCompat() {
             override fun invoke(args: Varargs): LuaValue {
-                val id = args.checkint(1)
-                val w = args.checkdouble(2).toFloat()
-                val h = args.checkdouble(3).toFloat()
-                val px = if (args.narg() >= 4) args.checkdouble(4).toFloat() else 0f
-                val py = if (args.narg() >= 5) args.checkdouble(5).toFloat() else 0.1f
-                val pz = if (args.narg() >= 6) args.checkdouble(6).toFloat() else -2f
+                val id = args.arg(1).checkint()
+                val w = args.arg(2).checkdouble().toFloat()
+                val h = args.arg(3).checkdouble().toFloat()
+                val px = if (args.narg() >= 4) args.arg(4).checkdouble().toFloat() else 0f
+                val py = if (args.narg() >= 5) args.arg(5).checkdouble().toFloat() else 0.1f
+                val pz = if (args.narg() >= 6) args.arg(6).checkdouble().toFloat() else -2f
                 val r = NativeSdk.createWindow(
                     id, px, py, pz, 0f, 0f, 0f, 1f, w, h,
                     NativeSdk.CONTENT_LUA_UI,
@@ -80,12 +80,12 @@ class LuaSdk(private val context: Context) {
 
         vr.set("setWindowTransform", object : VarArgFunctionCompat() {
             override fun invoke(args: Varargs): LuaValue {
-                val id = args.checkint(1)
-                val px = args.checkdouble(2).toFloat()
-                val py = args.checkdouble(3).toFloat()
-                val pz = args.checkdouble(4).toFloat()
-                val yaw = Math.toRadians(args.checkdouble(5))
-                val scale = if (args.narg() >= 6) args.checkdouble(6).toFloat() else 1f
+                val id = args.arg(1).checkint()
+                val px = args.arg(2).checkdouble().toFloat()
+                val py = args.arg(3).checkdouble().toFloat()
+                val pz = args.arg(4).checkdouble().toFloat()
+                val yaw = Math.toRadians(args.arg(5).checkdouble())
+                val scale = if (args.narg() >= 6) args.arg(6).checkdouble().toFloat() else 1f
                 val half = yaw / 2
                 NativeSdk.updateWindowTransform(
                     id, px, py, pz,
@@ -110,13 +110,13 @@ class LuaSdk(private val context: Context) {
 
         vr.set("setModelTransform", object : VarArgFunctionCompat() {
             override fun invoke(args: Varargs): LuaValue {
-                val handle = args.checkint(1).toLong()
-                val px = args.checkdouble(2).toFloat()
-                val py = args.checkdouble(3).toFloat()
-                val pz = args.checkdouble(4).toFloat()
-                val yawDeg = args.checkdouble(5)
-                val scale = if (args.narg() >= 6) args.checkdouble(6).toFloat() else 1f
-                val visible = if (args.narg() >= 7) args.checkboolean(7) else true
+                val handle = args.arg(1).checkint().toLong()
+                val px = args.arg(2).checkdouble().toFloat()
+                val py = args.arg(3).checkdouble().toFloat()
+                val pz = args.arg(4).checkdouble().toFloat()
+                val yawDeg = args.arg(5).checkdouble()
+                val scale = if (args.narg() >= 6) args.arg(6).checkdouble().toFloat() else 1f
+                val visible = if (args.narg() >= 7) args.arg(7).checkboolean() else true
                 val half = Math.toRadians(yawDeg) / 2
                 val ok = NativeSdk.setModelTransform(
                     handle, px, py, pz,
@@ -135,8 +135,8 @@ class LuaSdk(private val context: Context) {
         vr.set("spawnSphere", object : VarArgFunctionCompat() {
             override fun invoke(args: Varargs): LuaValue {
                 val id = NativeSdk.spawnSphere(
-                    args.checkdouble(1).toFloat(), args.checkdouble(2).toFloat(),
-                    args.checkdouble(3).toFloat(), args.checkdouble(4).toFloat(),
+                    args.arg(1).checkdouble().toFloat(), args.arg(2).checkdouble().toFloat(),
+                    args.arg(3).checkdouble().toFloat(), args.arg(4).checkdouble().toFloat(),
                 )
                 return LuaInteger.valueOf(id.toInt())
             }
@@ -145,8 +145,8 @@ class LuaSdk(private val context: Context) {
         vr.set("spawnCube", object : VarArgFunctionCompat() {
             override fun invoke(args: Varargs): LuaValue {
                 val id = NativeSdk.spawnCube(
-                    args.checkdouble(1).toFloat(), args.checkdouble(2).toFloat(),
-                    args.checkdouble(3).toFloat(), args.checkdouble(4).toFloat(),
+                    args.arg(1).checkdouble().toFloat(), args.arg(2).checkdouble().toFloat(),
+                    args.arg(3).checkdouble().toFloat(), args.arg(4).checkdouble().toFloat(),
                 )
                 return LuaInteger.valueOf(id.toInt())
             }
@@ -155,10 +155,10 @@ class LuaSdk(private val context: Context) {
         vr.set("setColor", object : VarArgFunctionCompat() {
             override fun invoke(args: Varargs): LuaValue {
                 val ok = NativeSdk.setObjectColor(
-                    args.checklong(1),
-                    args.checkdouble(2).toFloat(), args.checkdouble(3).toFloat(),
-                    args.checkdouble(4).toFloat(),
-                    if (args.narg() >= 5) args.checkdouble(5).toFloat() else 1f,
+                    args.arg(1).checklong(),
+                    args.arg(2).checkdouble().toFloat(), args.arg(3).checkdouble().toFloat(),
+                    args.arg(4).checkdouble().toFloat(),
+                    if (args.narg() >= 5) args.arg(5).checkdouble().toFloat() else 1f,
                 )
                 return LuaBoolean.valueOf(ok)
             }

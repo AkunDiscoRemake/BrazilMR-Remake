@@ -95,7 +95,7 @@ class Camera2Engine(private val context: Context) {
         val size = pickSize(chars, preset.width, preset.height)
 
         reader = ImageReader.newInstance(size.width, size.height, ImageFormat.YUV_420_888, 3).apply {
-            setOnImageAvailableListener({ r -> drain(r), }, handler)
+            setOnImageAvailableListener({ r -> drain(r) }, handler)
         }
         try {
             cm.openCamera(cameraId, object : CameraDevice.StateCallback() {
