@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema base: fullscreen preto puro. Nenhuma UI 2D é desenhada com ele —
+         apenas mantém a Activity imersiva e barra do sistema oculta. -->
+    <style name="Theme.BrazilMR" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <!-- Pré-voo: usado apenas nos segundos antes de o telefone entrar no VR Box
+         (consentimentos obrigatórios do sistema). -->
+    <style name="Theme.BrazilMR.PreFlight" parent="Theme.BrazilMR">
+        <item name="android:windowFullscreen">true</item>
+    </style>
+</resources>

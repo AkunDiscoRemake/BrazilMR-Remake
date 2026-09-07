@@ -1,0 +1,17 @@
+# BrazilMR - build artifacts
+.gradle/
+build/
+local.properties
+.idea/
+.cxx/
+captures/
+*.iml
+.externalNativeBuild/
+.DS_Store
+/app/release/
+*.apk
+*.aab
+*.so
+!app/src/main/cpp/**/*.so
+# Host test artifacts
+app/src/main/cpp/host_tests/build/

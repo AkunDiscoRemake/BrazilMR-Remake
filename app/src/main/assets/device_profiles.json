@@ -1,0 +1,50 @@
+[
+  {
+    "name": "VR Box (padrão)",
+    "fovYDeg": 90.0, "ipdMm": 63.5,
+    "k1": 0.215, "k2": 0.125, "chroma": 0.008,
+    "renderScale": 1.0, "swapEyes": false,
+    "lensCenterX": 0.5, "lensCenterY": 0.5,
+    "screenWmm": 130.0, "screenHmm": 68.0, "vignette": 0.35
+  },
+  {
+    "name": "Google Cardboard v2",
+    "fovYDeg": 96.0, "ipdMm": 62.0,
+    "k1": 0.34, "k2": 0.55, "chroma": 0.012,
+    "renderScale": 0.9, "swapEyes": false,
+    "lensCenterX": 0.5, "lensCenterY": 0.55,
+    "screenWmm": 132.0, "screenHmm": 66.0, "vignette": 0.45
+  },
+  {
+    "name": "VR Box 3.0 (botão frontal)",
+    "fovYDeg": 92.0, "ipdMm": 64.0,
+    "k1": 0.24, "k2": 0.18, "chroma": 0.010,
+    "renderScale": 1.0, "swapEyes": false,
+    "lensCenterX": 0.5, "lensCenterY": 0.52,
+    "screenWmm": 128.0, "screenHmm": 66.0, "vignette": 0.38
+  },
+  {
+    "name": "BoboVR Z4/Z5",
+    "fovYDeg": 100.0, "ipdMm": 64.5,
+    "k1": 0.28, "k2": 0.22, "chroma": 0.009,
+    "renderScale": 1.0, "swapEyes": false,
+    "lensCenterX": 0.5, "lensCenterY": 0.5,
+    "screenWmm": 136.0, "screenHmm": 70.0, "vignette": 0.32
+  },
+  {
+    "name": "Homido / Merge VR",
+    "fovYDeg": 94.0, "ipdMm": 63.0,
+    "k1": 0.22, "k2": 0.14, "chroma": 0.008,
+    "renderScale": 0.95, "swapEyes": false,
+    "lensCenterX": 0.5, "lensCenterY": 0.52,
+    "screenWmm": 128.0, "screenHmm": 68.0, "vignette": 0.36
+  },
+  {
+    "name": "Low-end (tela pequena)",
+    "fovYDeg": 82.0, "ipdMm": 62.0,
+    "k1": 0.18, "k2": 0.10, "chroma": 0.006,
+    "renderScale": 0.75, "swapEyes": false,
+    "lensCenterX": 0.5, "lensCenterY": 0.5,
+    "screenWmm": 110.0, "screenHmm": 60.0, "vignette": 0.3
+  }
+]

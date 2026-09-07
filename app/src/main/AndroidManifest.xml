@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ============================================================
+         BrazilMR — plataforma VR espacial para VR Box.
+         A UI inteira é renderizada em estéreo (SBS) via OpenGL ES.
+         Não existe interface Android 2D: a única "tela" é o ambiente VR.
+         ============================================================ -->
+
+    <!-- Tracking 6DoF / hand tracking: câmera traseira. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Bridge ADB / streaming de apps / navegador VR. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Controle térmico / vibração de feedback. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Captura de apps Android dentro de janelas espaciais. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+
+    <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="true" />
+    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="true" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+
+    <!-- ARCore é OPCIONAL: fallback CV próprio quando ausente. -->
+    <meta-data android:name="com.google.ar.core" android:value="optional" />
+
+    <application
+        android:name=".BrazilMrApplication"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.BrazilMR"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="34">
+
+        <!-- ÚNICA activity: entra direto no modo VR (SBS).
+             A tela de "pré-voo" é um overlay mínimo usado APENAS para
+             consentimentos obrigatórios do sistema (permissões, projeção de mídia,
+             instalação do ARCore) ANTES de o telefone entrar no VR Box.
+             Depois disso, tudo acontece dentro do espaço 3D. -->
+        <activity
+            android:name=".platform.VrActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|density|uiMode"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:resizeableActivity="false"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.BrazilMR.PreFlight">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Serviço em primeiro plano que mantém a captura (MediaProjection)
+             de apps Android enquanto o usuário está no headset. -->
+        <service
+            android:name=".apps.bridge.VrProjectionService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
+        <!-- Serviço de acessibilidade: injeção de input nos apps Android
+             em execução dentro de janelas espaciais (raycast→touch, pinch→tap). -->
+        <service
+            android:name=".apps.bridge.VrAccessibilityService"
+            android:exported="false"
+            android:label="@string/a11y_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!-- Biblioteca nativa principal (renderer estéreo, filtros, SLAM CV,
+             GLB, mãos, compositor). -->
+        <uses-native-library
+            android:name="libbrazilmr.so"
+            android:required="true" />
+    </application>
+</manifest>
