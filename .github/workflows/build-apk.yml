@@ -159,6 +159,75 @@ jobs:
 
           - ABIs: arm64-v8a, armeabi-v7a
           - Instalação: \`adb install -r BrazilMR-debug.apk\`
+          - Diagnóstico: se o app fechar sozinho, abra de novo e toque em “Compartilhar relatório”
           - Hand tracking: baixe hand_landmarker.task e rode tools/fetch_models.sh antes do build, ou use o ponteiro de cabeça (incluído)
           - Versão estável do motor nativo: 101/101 testes de host" || \
             echo "release já existe — APK segue no artifact"
+
+  # ---------------------------------------------------------------------------
+  # Smoke test: o app NUNCA rodou em aparelho real — o APK era só compilado.
+  # Aqui ele é instalado e ABERTO num emulador (Android 15, arm64). Se
+  # derrubar o processo na inicialização, o job falha e o logcat (com o
+  # stack trace) vai para o artifact + resumo da run.
+  # ---------------------------------------------------------------------------
+  smoke:
+    name: Smoke test — abre o app num emulador
+    runs-on: macos-latest
+    needs: apk
+    timeout-minutes: 45
+
+    steps:
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Baixa o APK (artifact)
+        uses: actions/download-artifact@v4
+        with:
+          name: BrazilMR-debug-apk
+
+      - name: Boot do emulador (API 35, arm64) + abertura do app
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: arm64-v8a
+          target: google_apis
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          disable-animations: true
+          script: |
+            set -x
+            adb install -r BrazilMR-debug.apk
+            # permissão já concedida → caminho completo (câmera+IMU+hands) no boot
+            adb shell pm grant com.brazilmr android.permission.CAMERA || true
+            adb logcat -c
+            adb shell am start -W -n com.brazilmr/com.brazilmr.platform.VrActivity
+            sleep 75
+            PID=$(adb shell pidof com.brazilmr | tr -d '\r\n ')
+            adb logcat -d -v time > logcat-full.txt
+            adb logcat -d -b crash -v time > logcat-crash.txt || true
+            {
+              echo "## Smoke test (emulador API 35 / arm64)"
+              echo "- App vivo após 75 s: $([ -n "$PID" ] && echo '**SIM**' || echo '**NÃO — crashou**')"
+              echo
+              echo '```'
+              grep -E "FATAL|AndroidRuntime|SIGSEGV|SIGABRT|tombstone|libbrazilmr|BrazilMRCrash|EGL_emulation|createContext|brazilmr" logcat-full.txt | head -120 || true
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            if [ -z "$PID" ]; then
+              echo "::error::O app CRASHOU durante a inicialização no emulador — ver artifact emulator-logcat"
+              exit 1
+            fi
+            echo "OK: app rodando após 75 s de abertura (pid $PID)"
+
+      - name: Upload dos logs do emulador
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-logcat
+          path: logcat-*.txt
+          if-no-files-found: ignore

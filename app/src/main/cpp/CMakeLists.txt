@@ -35,6 +35,7 @@ set(BMR_SOURCES
     brazilmr/windows/SpatialWindow.cpp
     brazilmr/sdk/VR.cpp
     brazilmr_jni/JniBridge.cpp
+    brazilmr_jni/CrashHandler.cpp
 )
 
 add_library(brazilmr SHARED ${BMR_SOURCES})

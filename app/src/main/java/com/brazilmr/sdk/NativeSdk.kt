@@ -23,6 +23,13 @@ object NativeSdk {
         System.loadLibrary("brazilmr")
     }
 
+    /**
+     * Diagnóstico: instala o handler nativo de sinais (SIGSEGV/SIGABRT etc.)
+     * que grava um mini-tombstone no diretório indicado. Chamado pelo
+     * CrashReporter no Application.onCreate — o mais cedo possível.
+     */
+    external fun installCrashHandler(crashDir: String): Boolean
+
     // ------------------------------------------------------------------
     // Constantes espelhadas do nativo (BrazilmrConfig.hpp / VR.hpp /
     // HandTypes.hpp / SpatialWindow.hpp / UiScene.hpp / TrackingTypes.hpp)

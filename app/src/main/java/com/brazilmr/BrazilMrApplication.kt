@@ -7,6 +7,7 @@ package com.brazilmr
 
 import android.app.Application
 import android.content.Context
+import com.brazilmr.diagnostics.CrashReporter
 import com.brazilmr.platform.HeadsetProfile
 import com.brazilmr.platform.HeadsetProfiles
 import com.brazilmr.sdk.VrPrefs
@@ -25,6 +26,10 @@ class BrazilMrApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // PRIMEIRO de tudo: captura de crashes (Java + sinais nativos).
+        // Se qualquer coisa derrubar o processo, o motivo fica gravado
+        // em arquivo e é oferecido para compartilhar na próxima abertura.
+        CrashReporter.install(this)
         instance = this
         prefs = VrPrefs(this)
         activeProfile = HeadsetProfiles.load(this, prefs)

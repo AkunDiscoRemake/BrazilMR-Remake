@@ -27,6 +27,7 @@ import com.brazilmr.apps.AppBridge
 import com.brazilmr.browser.SpatialKeyboard
 import com.brazilmr.browser.VrBrowser
 import com.brazilmr.camera.Camera2Engine
+import com.brazilmr.diagnostics.CrashReporter
 import com.brazilmr.hands.HandTracking
 import com.brazilmr.input.InputRouter
 import com.brazilmr.performance.ThermalManager
@@ -63,32 +64,49 @@ class VrActivity : Activity(), VrOs.Host {
         window.attributes.screenBrightness = 1.0f
         enterImmersive()
 
-        glView = GLSurfaceView(this)
-        glView.setEGLContextClientVersion(3)
-        glView.preserveEGLContextOnPause = true
+        // A execução anterior derrubou o processo? Oferece o relatório
+        // (fase de pré-voo, antes do VR — consentimento do usuário).
+        if (CrashReporter.hasPendingReports()) offerCrashReport()
 
-        imu = ImuTracker(this)
-        thermal = ThermalManager(this)
-        camera = Camera2Engine(this)
-        hands = HandTracking(this, camera)
-        keyboard = SpatialKeyboard()
-        os = VrOs(this, application as BrazilMrApplication)
-        input = InputRouter { recenter() }
-        browser = VrBrowser(this, keyboard)
-        appBridge = AppBridge(this)
-        lua = LuaSdk(this)
-        renderer = VrRenderer(this, os, imu, hands, thermal, input,
-            browser, appBridge, lua)
+        try {
+            glView = GLSurfaceView(this)
+            glView.setEGLContextClientVersion(3)
+            // Config EGL EXPLÍCITA: o chooser padrão do GLSurfaceView pede
+            // RGB565+depth16 — drivers recentes (Android 15/16, ARMv9) podem
+            // NÃO ter mais configs 565 e o contexto EGL falha derrubando o
+            // app na abertura ("createContext failed"). RGBA8888+depth24 é
+            // universal em ES3.
+            glView.setEGLConfigChooser(8, 8, 8, 0, 24, 0)
+            glView.preserveEGLContextOnPause = true
 
-        glView.setRenderer(renderer)
-        glView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
-        setContentView(glView)
+            imu = ImuTracker(this)
+            thermal = ThermalManager(this)
+            camera = Camera2Engine(this)
+            hands = HandTracking(this, camera)
+            keyboard = SpatialKeyboard()
+            os = VrOs(this, application as BrazilMrApplication)
+            input = InputRouter { recenter() }
+            browser = VrBrowser(this, keyboard)
+            appBridge = AppBridge(this)
+            lua = LuaSdk(this)
+            renderer = VrRenderer(this, os, imu, hands, thermal, input,
+                browser, appBridge, lua)
+
+            glView.setRenderer(renderer)
+            glView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
+            setContentView(glView)
+        } catch (t: Throwable) {
+            // qualquer falha de construção agora vira relatório + tela de
+            // diagnóstico em vez de crash silencioso
+            CrashReporter.recordError("onCreate", t)
+            showStartupFailure(t)
+        }
     }
 
     override fun onResume() {
         super.onResume()
         enterImmersive()
-        glView.onResume()
+        if (::glView.isInitialized) glView.onResume()
         if (vrStarted) {
             imu.start()
             camera.start(null)
@@ -96,9 +114,9 @@ class VrActivity : Activity(), VrOs.Host {
     }
 
     override fun onPause() {
-        glView.onPause()
-        imu.stop()
-        camera.stop()
+        if (::glView.isInitialized) glView.onPause()
+        if (::imu.isInitialized) imu.stop()
+        if (::camera.isInitialized) camera.stop()
         super.onPause()
     }
 
@@ -231,7 +249,92 @@ class VrActivity : Activity(), VrOs.Host {
         thermal.start()
     }
 
-    fun recenter() = NativeSdk.recenter()
+    // ------------------------------------------------------------------
+    // Diagnóstico: relatório de erro
+    // ------------------------------------------------------------------
+
+    /**
+     * Pergunta se o usuário quer compartilhar o relatório do crash da
+     * execução anterior (pré-voo — antes de o VR iniciar).
+     */
+    private fun offerCrashReport() {
+        try {
+            android.app.AlertDialog.Builder(this)
+                .setTitle("O BrazilMR fechou na última vez")
+                .setMessage(
+                    "Foi gravado um relatório técnico do que aconteceu " +
+                        "(modelo do aparelho, versão do Android e o erro " +
+                        "exato — nenhum dado pessoal).\n\n" +
+                        "Compartilhar com o desenvolvedor para corrigir o problema?",
+                )
+                .setPositiveButton("Compartilhar") { d, _ ->
+                    d.dismiss()
+                    runCatching { startActivity(CrashReporter.shareIntent(this)) }
+                    CrashReporter.clear()
+                }
+                .setNegativeButton("Agora não") { d, _ ->
+                    d.dismiss()
+                    CrashReporter.clear()
+                }
+                .setCancelable(false)
+                .show()
+        } catch (_: Exception) {
+            CrashReporter.clear()
+        }
+    }
+
+    /**
+     * Tela de diagnóstico — usada SOMENTE quando o próprio modo VR não
+     * conseguiu iniciar. Não é interface do produto (o produto é 100% VR);
+     * é o "modo seguro" que garante que o erro chegue ao desenvolvedor.
+     * (Chamada também pelo VrRenderer quando a thread GL falha.)
+     */
+    fun showStartupFailure(t: Throwable) {
+        vrStarted = false
+        runCatching { glView.onPause() }
+        val density = resources.displayMetrics.density
+        fun dp(v: Int) = (density * v).toInt()
+
+        val title = android.widget.TextView(this).apply {
+            text = "O BrazilMR não conseguiu iniciar o modo VR"
+            textSize = 19f
+            setTextColor(0xFFE8EDF2.toInt())
+        }
+        val detail = android.widget.TextView(this).apply {
+            text =
+                "Erro: ${t.javaClass.name}\n${t.message ?: ""}\n\n" +
+                    "Toque em “Compartilhar relatório” e envie para o " +
+                    "desenvolvedor — com isso dá para corrigir o problema " +
+                    "no seu aparelho."
+            textSize = 13f
+            setTextColor(0xFF9AA7B4.toInt())
+            setPadding(0, dp(12), 0, dp(24))
+        }
+        val share = android.widget.Button(this).apply {
+            text = "Compartilhar relatório"
+            setOnClickListener {
+                runCatching { startActivity(CrashReporter.shareIntent(this@VrActivity)) }
+            }
+        }
+        val retry = android.widget.Button(this).apply {
+            text = "Tentar de novo"
+            setOnClickListener {
+                CrashReporter.clear()
+                recreate()
+            }
+        }
+        val root = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setBackgroundColor(0xFF0B0F14.toInt())
+            val pad = dp(20)
+            setPadding(pad, pad, pad, pad)
+            addView(title)
+            addView(detail)
+            addView(share)
+            addView(retry)
+        }
+        setContentView(root)
+    }
 
     /** Roteia UM evento nativo por todos os subsistemas UI. */
     fun routeNativeEvent(ev: IntArray) {
@@ -274,19 +377,41 @@ private class VrRenderer(
     private val eventBuf = IntArray(6)
     private var statusTick = 0L
 
+    /** Depois de uma falha: para de renderizar (evita spam de exceção). */
+    @Volatile private var broken = false
+
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         // contexto recriado — reconfigura no próximo onSurfaceChanged
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-        if (!NativeSdk.initialize(width, height)) return
-        NativeSdk.initGl(width, height)
-        NativeSdk.resizeGl(width, height)
-        FontAtlas.install()
-        activity.onGlReady(width, height)
+        if (broken) return
+        try {
+            if (!NativeSdk.initialize(width, height)) return
+            NativeSdk.initGl(width, height)
+            NativeSdk.resizeGl(width, height)
+            FontAtlas.install()
+            activity.onGlReady(width, height)
+        } catch (t: Throwable) {
+            // exceção na thread GL é fatal por padrão — aqui viram relatório
+            broken = true
+            CrashReporter.recordError("primeiro frame GL", t)
+            activity.runOnUiThread { activity.showStartupFailure(t) }
+        }
     }
 
     override fun onDrawFrame(gl: GL10?) {
+        if (broken) return
+        try {
+            drawFrame()
+        } catch (t: Throwable) {
+            broken = true
+            CrashReporter.recordError("frame GL", t)
+            activity.runOnUiThread { activity.showStartupFailure(t) }
+        }
+    }
+
+    private fun drawFrame() {
         val now = SystemClock.elapsedRealtimeNanos()
         val dt = if (lastNs == 0L) 1f / 60f else (now - lastNs) * 1e-9f
         lastNs = now
