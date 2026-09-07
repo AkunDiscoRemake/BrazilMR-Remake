@@ -191,13 +191,14 @@ jobs:
         with:
           name: BrazilMR-debug-apk
 
-      - name: Boot do emulador (API 35, arm64) + abertura do app
+      - name: Boot do emulador (API 34, arm64) + abertura do app
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 34
           arch: arm64-v8a
           target: google_apis
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          emulator-options: -no-window -gpu host -noaudio -no-boot-anim -no-snapshot -memory 4096
+          emulator-boot-timeout: 900
           disable-animations: true
           script: |
             set -x
@@ -211,7 +212,7 @@ jobs:
             adb logcat -d -v time > logcat-full.txt
             adb logcat -d -b crash -v time > logcat-crash.txt || true
             {
-              echo "## Smoke test (emulador API 35 / arm64)"
+              echo "## Smoke test (emulador API 34 / arm64)"
               echo "- App vivo após 75 s: $([ -n "$PID" ] && echo '**SIM**' || echo '**NÃO — crashou**')"
               echo
               echo '```'
